@@ -1,0 +1,24 @@
+# Root gitignore for AttendanceLeaveManager
+
+# Node / Angular
+node_modules/
+dist/
+.angular/
+tmp/
+out-tsc/
+
+# .NET build outputs
+bin/
+obj/
+.vs/
+*.user
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# OS Files
+.DS_Store
+Thumbs.db

@@ -1,0 +1,820 @@
+<div class="app-container">
+
+  <!-- ==================== LANDING & AUTHENTICATION SCREEN (NOT LOGGED IN) ==================== -->
+  <div *ngIf="!isLoggedIn" style="max-width: 960px; margin: 2rem auto;">
+    
+    <!-- Hero Header -->
+    <div style="text-align: center; margin-bottom: 2.5rem;">
+      <div style="display: inline-flex; align-items: center; justify-content: center; width: 64px; height: 64px; border-radius: var(--radius-lg); background: var(--primary-gradient); font-size: 2rem; box-shadow: var(--shadow-glow); margin-bottom: 1rem;">
+        🏢
+      </div>
+      <h1 style="font-size: 2.25rem; font-weight: 800; background: linear-gradient(135deg, #ffffff 0%, #cbd5e1 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 0.5rem;">
+        Attendance & Leave Manager Platform
+      </h1>
+      <p style="color: var(--text-secondary); font-size: 1.05rem; max-width: 600px; margin: 0 auto;">
+        Subscribe your company to manage employee pointage, attendance registers, and leave requests seamlessly.
+      </p>
+    </div>
+
+    <!-- Auth Mode Switcher -->
+    <div style="display: flex; justify-content: center; gap: 1rem; margin-bottom: 2rem;">
+      <button 
+        class="tab-btn" 
+        [class.active]="authMode === 'register'" 
+        (click)="authMode = 'register'"
+        style="padding: 0.85rem 2rem; font-size: 1.05rem;">
+        🏢 Register Company
+      </button>
+      <button 
+        class="tab-btn" 
+        [class.active]="authMode === 'login'" 
+        (click)="authMode = 'login'"
+        style="padding: 0.85rem 2rem; font-size: 1.05rem;">
+        🔑 Company Login
+      </button>
+    </div>
+
+    <!-- ==================== REGISTRATION FORM ==================== -->
+    <div class="glass-panel" *ngIf="authMode === 'register'" style="padding: 2.5rem; max-width: 640px; margin: 0 auto;">
+      <h2 style="font-size: 1.4rem; font-weight: 700; margin-bottom: 1.5rem; text-align: center; color: var(--text-primary);">
+        🏢 Register Your Company
+      </h2>
+
+      <!-- Registration Fields -->
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem;">
+        <div class="form-group">
+          <label class="form-label">Company Name *:</label>
+          <input type="text" class="form-control" placeholder="e.g. InnoviTech Ltd" [(ngModel)]="registerReq.companyName" />
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Director / Admin Full Name *:</label>
+          <input type="text" class="form-control" placeholder="e.g. Sarah Jenkins" [(ngModel)]="registerReq.adminName" />
+        </div>
+      </div>
+
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem;">
+        <div class="form-group">
+          <label class="form-label">Corporate Email Address *:</label>
+          <input type="email" class="form-control" placeholder="admin@innovitech.com" [(ngModel)]="registerReq.email" />
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Password *:</label>
+          <input type="password" class="form-control" placeholder="••••••••" [(ngModel)]="registerReq.password" />
+        </div>
+      </div>
+
+      <div style="margin-top: 1.5rem;">
+        <button class="btn btn-primary" style="width: 100%; padding: 0.9rem; font-size: 1.05rem; justify-content: center;" (click)="onRegisterCompany()">
+          🚀 Register Company & Enter Dashboard
+        </button>
+      </div>
+    </div>
+
+    <!-- ==================== LOGIN FORM ==================== -->
+    <div class="glass-panel" *ngIf="authMode === 'login'" style="padding: 2.5rem; max-width: 520px; margin: 0 auto;">
+      <h2 style="font-size: 1.4rem; font-weight: 700; margin-bottom: 1.5rem; text-align: center; color: var(--text-primary);">
+        Sign In to Company Portal
+      </h2>
+
+      <div class="form-group">
+        <label class="form-label">Corporate Email Address:</label>
+        <input type="email" class="form-control" placeholder="admin@company.com" [(ngModel)]="loginReq.email" />
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Password:</label>
+        <input type="password" class="form-control" placeholder="••••••••" [(ngModel)]="loginReq.password" />
+      </div>
+
+      <div style="margin-top: 1.5rem;">
+        <button class="btn btn-primary" style="width: 100%; padding: 0.9rem; font-size: 1.05rem; justify-content: center;" (click)="onLogin()">
+          🔑 Sign In
+        </button>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ==================== PROTECTED DASHBOARD (LOGGED IN) ==================== -->
+  <div *ngIf="isLoggedIn">
+
+    <!-- Top Navigation Header -->
+    <header class="app-header glass-panel">
+      <div class="logo-container">
+        <div class="logo-icon">🏢</div>
+        <div>
+          <h1 class="logo-title">{{ authSession?.companyName || 'Attendance & Leave Manager' }}</h1>
+          <p class="logo-subtitle">Enterprise HR Portal | Active Account</p>
+        </div>
+      </div>
+
+      <div class="header-right">
+        <!-- Live Clock -->
+        <div class="clock-badge">
+          <div class="clock-time">{{ currentTimeStr }}</div>
+          <div class="clock-date">{{ currentDateStr }}</div>
+        </div>
+
+        <!-- Current User Switcher Simulation -->
+        <div class="user-profile-card" *ngIf="currentUser">
+          <img [src]="currentUser.avatarUrl" [alt]="currentUser.fullName" class="user-avatar" />
+          <div class="user-info">
+            <div class="user-name">{{ currentUser.fullName }}</div>
+            <span class="user-role-badge" [ngClass]="currentUser.role === 'Manager' ? 'role-manager' : 'role-employee'">
+              {{ currentUser.role }} ({{ currentUser.department }})
+            </span>
+          </div>
+          <select class="user-select-dropdown" [ngModel]="currentUser.id" (ngModelChange)="switchUser($any($event))">
+            <option *ngFor="let emp of employees" [value]="emp.id">
+              Switch to: {{ emp.fullName }} ({{ emp.role }})
+            </option>
+          </select>
+        </div>
+
+        <button class="btn btn-secondary" style="padding: 0.5rem 0.9rem; font-size: 0.85rem;" (click)="onLogout()">
+          🚪 Logout
+        </button>
+      </div>
+    </header>
+
+    <!-- Navigation Tabs -->
+    <nav class="nav-tabs">
+      <button class="tab-btn" [class.active]="activeTab === 'dashboard'" (click)="activeTab = 'dashboard'">
+        📊 Dashboard & Quick Clock
+      </button>
+      <button class="tab-btn" [class.active]="activeTab === 'attendance'" (click)="activeTab = 'attendance'">
+        ⏱️ Pointage & Attendance
+      </button>
+      <button class="tab-btn" [class.active]="activeTab === 'leaves'" (click)="activeTab = 'leaves'">
+        🏖️ Congés & Leaves
+      </button>
+      <button class="tab-btn" [class.active]="activeTab === 'employees'" (click)="activeTab = 'employees'">
+        👥 Employees Directory
+      </button>
+    </nav>
+
+    <!-- Main Content Area -->
+    <main>
+      <!-- ==================== DASHBOARD TAB ==================== -->
+      <section *ngIf="activeTab === 'dashboard'">
+        <!-- Quick Clock-In / Clock-Out Widget -->
+        <div class="glass-panel" style="padding: 2rem; margin-bottom: 2rem; border-left: 5px solid var(--primary-accent);">
+          <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1.5rem;">
+            <div>
+              <h2 style="font-size: 1.5rem; font-weight: 800; margin-bottom: 0.25rem;">
+                👋 Welcome, {{ currentUser?.fullName }}!
+              </h2>
+              <p style="color: var(--text-secondary); font-size: 0.95rem;">
+                Shift Schedule: <strong>{{ currentUser?.shiftSchedule }}</strong> | Role: <strong>{{ currentUser?.role }}</strong>
+              </p>
+            </div>
+
+            <!-- Clock Widget Action -->
+            <div style="display: flex; align-items: center; gap: 1.5rem; background: rgba(15, 23, 42, 0.6); padding: 1rem 1.5rem; border-radius: var(--radius-md); border: 1px solid var(--glass-border);">
+              <div>
+                <div style="font-size: 0.8rem; text-transform: uppercase; color: var(--text-secondary); font-weight: 700;">Today's Status</div>
+                <div style="font-size: 1.1rem; font-weight: 700;">
+                  <span *ngIf="!todayAttendance?.clockInTime" style="color: var(--text-muted);">Not Clocked In</span>
+                  <span *ngIf="todayAttendance?.clockInTime && !todayAttendance?.clockOutTime" style="color: var(--success);">
+                    🟢 Clocked In at {{ todayAttendance?.clockInTime | date:'shortTime' }} ({{ todayAttendance?.status }})
+                  </span>
+                  <span *ngIf="todayAttendance?.clockOutTime" style="color: #60a5fa;">
+                    🏁 Finished Shift at {{ todayAttendance?.clockOutTime | date:'shortTime' }} ({{ todayAttendance?.workingHours }} hrs)
+                  </span>
+                </div>
+              </div>
+
+              <div style="display: flex; gap: 0.75rem;">
+                <button 
+                  class="btn btn-success" 
+                  style="padding: 0.75rem 1.5rem; font-size: 1rem;" 
+                  [disabled]="!!todayAttendance?.clockInTime"
+                  (click)="onClockIn()">
+                  🟢 Clock In
+                </button>
+                
+                <button 
+                  class="btn btn-danger" 
+                  style="padding: 0.75rem 1.5rem; font-size: 1rem;" 
+                  [disabled]="!todayAttendance?.clockInTime || !!todayAttendance?.clockOutTime"
+                  (click)="onClockOut()">
+                  🔴 Clock Out
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- KPI Summary Cards -->
+        <div class="grid-4" *ngIf="dashboardSummary" style="margin-bottom: 2rem;">
+          <div class="glass-panel kpi-card">
+            <div class="kpi-icon icon-blue">👥</div>
+            <div>
+              <div class="kpi-value">{{ dashboardSummary.totalEmployees }}</div>
+              <div class="kpi-label">Total Personnel</div>
+            </div>
+          </div>
+
+          <div class="glass-panel kpi-card">
+            <div class="kpi-icon icon-green">✅</div>
+            <div>
+              <div class="kpi-value">{{ dashboardSummary.presentToday }}</div>
+              <div class="kpi-label">Present Today</div>
+            </div>
+          </div>
+
+          <div class="glass-panel kpi-card">
+            <div class="kpi-icon icon-amber">⏰</div>
+            <div>
+              <div class="kpi-value">{{ dashboardSummary.lateToday }}</div>
+              <div class="kpi-label">Late Arrivals Today</div>
+            </div>
+          </div>
+
+          <div class="glass-panel kpi-card">
+            <div class="kpi-icon icon-purple">🏖️</div>
+            <div>
+              <div class="kpi-value">{{ dashboardSummary.onLeaveToday }}</div>
+              <div class="kpi-label">On Leave Today</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Recent Pointages & Leaves Section -->
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;" *ngIf="dashboardSummary">
+          <!-- Recent Pointages -->
+          <div class="glass-panel" style="padding: 1.5rem;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+              <h3 style="font-size: 1.1rem; font-weight: 700;">⏱️ Recent Pointages</h3>
+              <button class="btn btn-secondary" style="font-size: 0.8rem; padding: 0.3rem 0.75rem;" (click)="activeTab = 'attendance'">View All</button>
+            </div>
+
+            <div class="table-container">
+              <table class="custom-table">
+                <thead>
+                  <tr>
+                    <th>Employee</th>
+                    <th>Clock In</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr *ngFor="let rec of dashboardSummary.recentPointages">
+                    <td>
+                      <strong>{{ rec.employeeName }}</strong>
+                      <div style="font-size: 0.75rem; color: var(--text-muted);">{{ rec.department }}</div>
+                    </td>
+                    <td>{{ rec.clockInTime | date:'shortTime' }}</td>
+                    <td>
+                      <span class="badge" [ngClass]="{
+                        'badge-ontime': rec.status === 'OnTime',
+                        'badge-late': rec.status === 'Late',
+                        'badge-absent': rec.status === 'Absent'
+                      }">
+                        {{ rec.status }}
+                      </span>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Pending Leave Requests -->
+          <div class="glass-panel" style="padding: 1.5rem;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+              <h3 style="font-size: 1.1rem; font-weight: 700;">🏖️ Recent Leave Requests</h3>
+              <button class="btn btn-secondary" style="font-size: 0.8rem; padding: 0.3rem 0.75rem;" (click)="activeTab = 'leaves'">View All</button>
+            </div>
+
+            <div class="table-container">
+              <table class="custom-table">
+                <thead>
+                  <tr>
+                    <th>Employee</th>
+                    <th>Type</th>
+                    <th>Days</th>
+                    <th>Status</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr *ngFor="let leave of dashboardSummary.recentLeaves">
+                    <td>
+                      <strong>{{ leave.employeeName }}</strong>
+                    </td>
+                    <td>{{ leave.leaveType }}</td>
+                    <td>{{ leave.totalDays }} d</td>
+                    <td>
+                      <span class="badge" [ngClass]="{
+                        'badge-pending': leave.status === 'Pending',
+                        'badge-approved': leave.status === 'Approved',
+                        'badge-rejected': leave.status === 'Rejected'
+                      }">
+                        {{ leave.status }}
+                      </span>
+                    </td>
+                    <td>
+                      <button *ngIf="leave.status === 'Pending' && isManager" class="btn btn-primary" style="padding: 0.3rem 0.6rem; font-size: 0.75rem;" (click)="openApprovalModal(leave)">
+                        Review
+                      </button>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+      <!-- ==================== ATTENDANCE (POINTAGE) TAB ==================== -->
+      <section *ngIf="activeTab === 'attendance'">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+          <div>
+            <h2 style="font-size: 1.6rem; font-weight: 800;">⏱️ Daily Pointage & Attendance Register</h2>
+            <p style="color: var(--text-secondary); font-size: 0.9rem;">Track real-time employee check-ins, tardiness, and working hours.</p>
+          </div>
+
+          <div style="display: flex; gap: 0.75rem;">
+            <button class="btn btn-secondary" (click)="openManualModal()">
+              📝 Manual Check-In Entry
+            </button>
+            <button class="btn btn-primary" (click)="exportAttendanceCSV()">
+              📥 Export CSV
+            </button>
+          </div>
+        </div>
+
+        <!-- Filters Bar -->
+        <div class="glass-panel" style="padding: 1rem 1.5rem; margin-bottom: 1.5rem; display: flex; gap: 1.5rem; align-items: center;">
+          <div style="display: flex; align-items: center; gap: 0.5rem;">
+            <label class="form-label" style="margin: 0;">Department:</label>
+            <select class="form-control" style="width: 160px;" [(ngModel)]="selectedDeptFilter" (change)="loadAttendanceLogs()">
+              <option value="All">All Departments</option>
+              <option value="Engineering">Engineering</option>
+              <option value="Human Resources">Human Resources</option>
+              <option value="Marketing">Marketing</option>
+              <option value="Finance">Finance</option>
+            </select>
+          </div>
+
+          <div style="display: flex; align-items: center; gap: 0.5rem;">
+            <label class="form-label" style="margin: 0;">Date Filter:</label>
+            <input type="date" class="form-control" style="width: 170px;" [(ngModel)]="selectedDateFilter" (change)="loadAttendanceLogs()" />
+          </div>
+
+          <button class="btn btn-secondary" style="font-size: 0.85rem; padding: 0.5rem 1rem;" (click)="selectedDateFilter = ''; selectedDeptFilter = 'All'; loadAttendanceLogs()">
+            Reset Filters
+          </button>
+        </div>
+
+        <!-- Attendance Table -->
+        <div class="glass-panel" style="padding: 1.5rem;">
+          <div class="table-container">
+            <table class="custom-table">
+              <thead>
+                <tr>
+                  <th>Employee</th>
+                  <th>Department</th>
+                  <th>Date</th>
+                  <th>Clock In</th>
+                  <th>Clock Out</th>
+                  <th>Status</th>
+                  <th>Working Hours</th>
+                  <th>Notes</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let rec of attendanceRecords">
+                  <td>
+                    <strong style="font-size: 0.95rem;">{{ rec.employeeName }}</strong>
+                  </td>
+                  <td>
+                    <span style="color: var(--text-secondary);">{{ rec.department }}</span>
+                  </td>
+                  <td>{{ rec.date | date:'mediumDate' }}</td>
+                  <td>
+                    <strong *ngIf="rec.clockInTime" style="color: var(--success);">{{ rec.clockInTime | date:'shortTime' }}</strong>
+                    <span *ngIf="!rec.clockInTime" style="color: var(--text-muted);">-</span>
+                  </td>
+                  <td>
+                    <strong *ngIf="rec.clockOutTime" style="color: #60a5fa;">{{ rec.clockOutTime | date:'shortTime' }}</strong>
+                    <span *ngIf="!rec.clockOutTime" style="color: var(--text-muted);">-</span>
+                  </td>
+                  <td>
+                    <span class="badge" [ngClass]="{
+                      'badge-ontime': rec.status === 'OnTime',
+                      'badge-late': rec.status === 'Late',
+                      'badge-absent': rec.status === 'Absent'
+                    }">
+                      {{ rec.status }}
+                    </span>
+                  </td>
+                  <td>
+                    <strong>{{ rec.workingHours > 0 ? rec.workingHours + ' hrs' : '-' }}</strong>
+                  </td>
+                  <td style="color: var(--text-secondary); font-style: italic;">
+                    {{ rec.notes || 'Normal entry' }}
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ==================== LEAVES (CONGÉS) TAB ==================== -->
+      <section *ngIf="activeTab === 'leaves'">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+          <div>
+            <h2 style="font-size: 1.6rem; font-weight: 800;">🏖️ Congés & Absence Management</h2>
+            <p style="color: var(--text-secondary); font-size: 0.9rem;">Manage employee vacation days, sick leaves, and manager approvals.</p>
+          </div>
+
+          <button class="btn btn-primary" (click)="openLeaveModal()">
+            ➕ Request New Leave (Nouveau Congé)
+          </button>
+        </div>
+
+        <!-- User Leave Balances Cards -->
+        <div class="grid-4" *ngIf="userLeaveBalance" style="margin-bottom: 2rem;">
+          
+          <div class="glass-panel" style="padding: 1.25rem;">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <span style="font-size: 0.85rem; color: var(--text-secondary); font-weight: 600;">Annual Paid Leave ({{ currentUser?.contractType || 'CDI' }})</span>
+              <span class="badge badge-approved">{{ userLeaveBalance.annualRemaining }} Days Left</span>
+            </div>
+            <div style="font-size: 1.75rem; font-weight: 800; margin: 0.5rem 0;">
+              {{ userLeaveBalance.annualUsed }} / {{ userLeaveBalance.annualTotal }} <span style="font-size: 0.9rem; font-weight: 500; color: var(--text-muted);">Days Used</span>
+            </div>
+            <div class="progress-bar-bg">
+              <div class="progress-fill fill-purple" [style.width.%]="(userLeaveBalance.annualUsed / userLeaveBalance.annualTotal) * 100"></div>
+            </div>
+          </div>
+
+          <div class="glass-panel" style="padding: 1.25rem;">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <span style="font-size: 0.85rem; color: var(--text-secondary); font-weight: 600;">Sick Leave (Congé Maladie)</span>
+              <span class="badge badge-ontime">{{ userLeaveBalance.sickRemaining }} Days Left</span>
+            </div>
+            <div style="font-size: 1.75rem; font-weight: 800; margin: 0.5rem 0;">
+              {{ userLeaveBalance.sickUsed }} / {{ userLeaveBalance.sickTotal }} <span style="font-size: 0.9rem; font-weight: 500; color: var(--text-muted);">Days Used</span>
+            </div>
+            <div class="progress-bar-bg">
+              <div class="progress-fill fill-blue" [style.width.%]="(userLeaveBalance.sickUsed / userLeaveBalance.sickTotal) * 100"></div>
+            </div>
+          </div>
+
+          <div class="glass-panel" style="padding: 1.25rem;">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <span style="font-size: 0.85rem; color: var(--text-secondary); font-weight: 600;">Telework / Remote Allowance</span>
+              <span class="badge badge-pending">{{ userLeaveBalance.teleworkAllowed - userLeaveBalance.teleworkUsed }} Days Left</span>
+            </div>
+            <div style="font-size: 1.75rem; font-weight: 800; margin: 0.5rem 0;">
+              {{ userLeaveBalance.teleworkUsed }} / {{ userLeaveBalance.teleworkAllowed }} <span style="font-size: 0.9rem; font-weight: 500; color: var(--text-muted);">Days Used</span>
+            </div>
+            <div class="progress-bar-bg">
+              <div class="progress-fill fill-amber" [style.width.%]="(userLeaveBalance.teleworkUsed / userLeaveBalance.teleworkAllowed) * 100"></div>
+            </div>
+          </div>
+
+          <div class="glass-panel" style="padding: 1.25rem;">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <span style="font-size: 0.85rem; color: var(--text-secondary); font-weight: 600;">Unpaid Leave (Sans Solde)</span>
+              <span class="badge badge-rejected">{{ userLeaveBalance.unpaidUsed }} Days</span>
+            </div>
+            <div style="font-size: 1.75rem; font-weight: 800; margin: 0.5rem 0;">
+              {{ userLeaveBalance.unpaidUsed }} <span style="font-size: 0.9rem; font-weight: 500; color: var(--text-muted);">Total Taken</span>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Status Filter Bar -->
+        <div class="glass-panel" style="padding: 1rem 1.5rem; margin-bottom: 1.5rem; display: flex; gap: 0.5rem; flex-wrap: wrap;">
+          <button class="btn btn-secondary" [class.btn-primary]="selectedStatusFilter === 'All'" (click)="selectedStatusFilter = 'All'; loadLeaves()">
+            All Requests
+          </button>
+          <button class="btn btn-secondary" [class.btn-primary]="selectedStatusFilter === 'Pending'" (click)="selectedStatusFilter = 'Pending'; loadLeaves()">
+            Pending Approval
+          </button>
+          <button class="btn btn-secondary" [class.btn-primary]="selectedStatusFilter === 'Approved'" (click)="selectedStatusFilter = 'Approved'; loadLeaves()">
+            Approved
+          </button>
+          <button class="btn btn-secondary" [class.btn-primary]="selectedStatusFilter === 'Rejected'" (click)="selectedStatusFilter = 'Rejected'; loadLeaves()">
+            Rejected
+          </button>
+          <button class="btn btn-secondary" [class.btn-primary]="selectedStatusFilter === 'Canceled'" (click)="selectedStatusFilter = 'Canceled'; loadLeaves()">
+            Canceled
+          </button>
+        </div>
+
+        <!-- Leave Requests Table -->
+        <div class="glass-panel" style="padding: 1.5rem;">
+          <div class="table-container">
+            <table class="custom-table">
+              <thead>
+                <tr>
+                  <th>Employee</th>
+                  <th>Leave Type</th>
+                  <th>Date Range</th>
+                  <th>Total Days</th>
+                  <th>Reason</th>
+                  <th>Submitted Date</th>
+                  <th>Status</th>
+                  <th>Manager Comment</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let leave of leaveRequests">
+                  <td>
+                    <strong>{{ leave.employeeName }}</strong>
+                    <div style="font-size: 0.75rem; color: var(--text-muted);">{{ leave.department }}</div>
+                  </td>
+                  <td>
+                    <span style="font-weight: 600; color: var(--primary-accent);">{{ leave.leaveType }}</span>
+                  </td>
+                  <td>
+                    {{ leave.startDate | date:'mediumDate' }} → {{ leave.endDate | date:'mediumDate' }}
+                  </td>
+                  <td><strong>{{ leave.totalDays }} days</strong></td>
+                  <td style="max-width: 200px;">{{ leave.reason }}</td>
+                  <td>{{ leave.submittedDate | date:'shortDate' }}</td>
+                  <td>
+                    <span class="badge" [ngClass]="{
+                      'badge-pending': leave.status === 'Pending',
+                      'badge-approved': leave.status === 'Approved',
+                      'badge-rejected': leave.status === 'Rejected',
+                      'badge-canceled': leave.status === 'Canceled'
+                    }">
+                      {{ leave.status }}
+                    </span>
+                  </td>
+                  <td style="color: var(--text-secondary); font-style: italic;">
+                    {{ leave.managerComment || '-' }}
+                  </td>
+                  <td style="display: flex; gap: 0.5rem; align-items: center;">
+                    <button *ngIf="leave.status === 'Pending' && isManager" class="btn btn-primary" style="font-size: 0.8rem; padding: 0.35rem 0.75rem;" (click)="openApprovalModal(leave)">
+                      Review
+                    </button>
+                    <button *ngIf="(leave.status === 'Pending' || leave.status === 'Approved') && (currentUser?.id === leave.employeeId || currentUser?.role === 'Manager')" class="btn btn-secondary" style="font-size: 0.8rem; padding: 0.35rem 0.75rem; border-color: rgba(239,68,68,0.4); color: #f87171;" (click)="cancelLeaveRequest(leave)">
+                      Cancel
+                    </button>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ==================== EMPLOYEES DIRECTORY TAB ==================== -->
+      <section *ngIf="activeTab === 'employees'">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+          <div>
+            <h2 style="font-size: 1.6rem; font-weight: 800;">👥 Company Employee Directory</h2>
+            <p style="color: var(--text-secondary); font-size: 0.9rem;">View company personnel, departments, shift schedules, and assigned roles.</p>
+          </div>
+
+          <button class="btn btn-primary" (click)="openAddEmployeeModal()">
+            ➕ Add New Employee
+          </button>
+        </div>
+
+        <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1.5rem;">
+          <div class="glass-panel" *ngFor="let emp of employees" style="padding: 1.5rem; text-align: center;">
+            <img [src]="emp.avatarUrl" [alt]="emp.fullName" style="width: 80px; height: 80px; border-radius: 50%; object-fit: cover; border: 3px solid var(--primary-accent); margin-bottom: 1rem;" />
+            <h3 style="font-size: 1.15rem; font-weight: 700;">{{ emp.fullName }}</h3>
+            <div style="color: var(--primary-accent); font-size: 0.85rem; font-weight: 600; margin-bottom: 0.5rem;">{{ emp.jobTitle }}</div>
+
+            <div style="margin-bottom: 1rem;">
+              <span class="user-role-badge" [ngClass]="emp.role === 'Manager' ? 'role-manager' : 'role-employee'">
+                {{ emp.role }}
+              </span>
+            </div>
+
+            <div style="background: rgba(15, 23, 42, 0.5); padding: 0.75rem; border-radius: var(--radius-sm); font-size: 0.82rem; color: var(--text-secondary); text-align: left; margin-bottom: 1rem;">
+              <div style="margin-bottom: 0.25rem;">🏢 <strong>Dept:</strong> {{ emp.department }}</div>
+              <div style="margin-bottom: 0.25rem;">📄 <strong>Contract:</strong> <span class="badge badge-pending" style="font-size: 0.7rem; padding: 1px 6px;">{{ emp.contractType || 'CDI' }}</span></div>
+              <div style="margin-bottom: 0.25rem;">⏰ <strong>Shift:</strong> {{ emp.shiftSchedule }}</div>
+              <div style="margin-bottom: 0.25rem;">✉️ <strong>Email:</strong> {{ emp.email }}</div>
+              <div>📅 <strong>Joined:</strong> {{ emp.hireDate | date:'mediumDate' }}</div>
+            </div>
+
+            <div style="display: flex; justify-content: center; gap: 0.5rem;">
+              <button class="btn btn-secondary" style="padding: 0.4rem 0.8rem; font-size: 0.8rem;" (click)="openEditEmployeeModal(emp)">✏️ Edit</button>
+              <button class="btn btn-danger" style="padding: 0.4rem 0.8rem; font-size: 0.8rem;" (click)="deleteEmployee(emp)">🗑️ Delete</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </main>
+
+    <!-- ==================== MODALS ==================== -->
+
+    <!-- Modal: Add / Edit Employee -->
+    <div class="modal-overlay" *ngIf="showEmployeeModal">
+      <div class="modal-card" style="max-width: 540px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+          <h3 style="font-size: 1.25rem; font-weight: 700;">{{ isEditingEmployee ? '✏️ Edit Employee' : '👤 Add New Employee' }}</h3>
+          <button style="background: none; border: none; color: var(--text-secondary); font-size: 1.5rem; cursor: pointer;" (click)="closeEmployeeModal()">×</button>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+          <div class="form-group">
+            <label class="form-label">Full Name *:</label>
+            <input type="text" class="form-control" placeholder="e.g. John Doe" [(ngModel)]="employeeForm.fullName" />
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Email *:</label>
+            <input type="email" class="form-control" placeholder="john.doe@company.com" [(ngModel)]="employeeForm.email" />
+          </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+          <div class="form-group">
+            <label class="form-label">Department:</label>
+            <select class="form-control" [(ngModel)]="employeeForm.department">
+              <option value="Engineering">Engineering</option>
+              <option value="Human Resources">Human Resources</option>
+              <option value="Marketing">Marketing</option>
+              <option value="Finance">Finance</option>
+              <option value="Sales">Sales</option>
+              <option value="Operations">Operations</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Job Title:</label>
+            <input type="text" class="form-control" placeholder="e.g. Senior Lead Developer" [(ngModel)]="employeeForm.jobTitle" />
+          </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem;">
+          <div class="form-group">
+            <label class="form-label">Role:</label>
+            <select class="form-control" [(ngModel)]="employeeForm.role">
+              <option value="Employee">Employee</option>
+              <option value="Manager">Manager</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Contract Type:</label>
+            <select class="form-control" [(ngModel)]="employeeForm.contractType">
+              <option value="SIVP">SIVP (18 days)</option>
+              <option value="CDD">CDD (21 days)</option>
+              <option value="CDI">CDI (21 days)</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Shift Schedule:</label>
+            <input type="text" class="form-control" placeholder="09:00 - 17:00" [(ngModel)]="employeeForm.shiftSchedule" />
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Avatar Image URL:</label>
+          <input type="text" class="form-control" placeholder="https://..." [(ngModel)]="employeeForm.avatarUrl" />
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Hire Date:</label>
+          <input type="date" class="form-control" [(ngModel)]="employeeForm.hireDate" />
+        </div>
+
+        <div style="display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: 1.5rem;">
+          <button class="btn btn-secondary" (click)="closeEmployeeModal()">Cancel</button>
+          <button class="btn btn-primary" (click)="submitEmployeeForm()">{{ isEditingEmployee ? 'Save Changes' : 'Create Employee' }}</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal: New Leave Request -->
+    <div class="modal-overlay" *ngIf="showLeaveModal">
+      <div class="modal-card">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+          <h3 style="font-size: 1.25rem; font-weight: 700;">🏖️ Request New Leave (Congé)</h3>
+          <button style="background: none; border: none; color: var(--text-secondary); font-size: 1.5rem; cursor: pointer;" (click)="showLeaveModal = false">×</button>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Leave Type:</label>
+          <select class="form-control" [(ngModel)]="newLeaveReq.leaveType">
+            <option value="Annual">Annual Paid Leave (Congé Payé)</option>
+            <option value="Sick">Sick Leave (Congé Maladie)</option>
+            <option value="Telework">Telework / Remote (Télétravail)</option>
+            <option value="Unpaid">Unpaid Leave (Sans Solde)</option>
+            <option value="Maternity">Maternity / Paternity</option>
+          </select>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+          <div class="form-group">
+            <label class="form-label">Start Date:</label>
+            <input type="date" class="form-control" [(ngModel)]="newLeaveReq.startDate" />
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">End Date:</label>
+            <input type="date" class="form-control" [(ngModel)]="newLeaveReq.endDate" />
+          </div>
+        </div>
+
+        <div style="background: rgba(99, 102, 241, 0.1); border: 1px dashed var(--primary-accent); padding: 0.75rem; border-radius: var(--radius-sm); margin-bottom: 1.25rem; font-size: 0.9rem; color: #a5b4fc;">
+          Total Duration: <strong>{{ calculatedLeaveDays }} working day(s)</strong>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Reason / Justification:</label>
+          <textarea class="form-control" rows="3" placeholder="Provide a detailed reason..." [(ngModel)]="newLeaveReq.reason"></textarea>
+        </div>
+
+        <div style="display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: 1.5rem;">
+          <button class="btn btn-secondary" (click)="showLeaveModal = false">Cancel</button>
+          <button class="btn btn-primary" (click)="submitLeaveRequest()">Submit Request</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal: Manual Attendance Entry -->
+    <div class="modal-overlay" *ngIf="showManualAttendanceModal">
+      <div class="modal-card">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+          <h3 style="font-size: 1.25rem; font-weight: 700;">📝 Manual Pointage Entry</h3>
+          <button style="background: none; border: none; color: var(--text-secondary); font-size: 1.5rem; cursor: pointer;" (click)="showManualAttendanceModal = false">×</button>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Employee:</label>
+          <select class="form-control" [(ngModel)]="manualReq.employeeId">
+            <option *ngFor="let emp of employees" [value]="emp.id">{{ emp.fullName }} ({{ emp.department }})</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Date:</label>
+          <input type="date" class="form-control" [(ngModel)]="manualReq.date" />
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+          <div class="form-group">
+            <label class="form-label">Clock In Time:</label>
+            <input type="time" class="form-control" [(ngModel)]="manualReq.clockIn" />
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Clock Out Time:</label>
+            <input type="time" class="form-control" [(ngModel)]="manualReq.clockOut" />
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Manager / Adjustment Notes:</label>
+          <input type="text" class="form-control" placeholder="Reason for manual entry..." [(ngModel)]="manualReq.notes" />
+        </div>
+
+        <div style="display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: 1.5rem;">
+          <button class="btn btn-secondary" (click)="showManualAttendanceModal = false">Cancel</button>
+          <button class="btn btn-primary" (click)="submitManualAttendance()">Save Entry</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal: Manager Leave Approval -->
+    <div class="modal-overlay" *ngIf="showApprovalModal && selectedLeaveToApprove">
+      <div class="modal-card">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+          <h3 style="font-size: 1.25rem; font-weight: 700;">🔍 Review Leave Request</h3>
+          <button style="background: none; border: none; color: var(--text-secondary); font-size: 1.5rem; cursor: pointer;" (click)="showApprovalModal = false">×</button>
+        </div>
+
+        <div style="background: rgba(15, 23, 42, 0.6); padding: 1rem; border-radius: var(--radius-sm); margin-bottom: 1.25rem; font-size: 0.9rem;">
+          <div><strong>Employee:</strong> {{ selectedLeaveToApprove.employeeName }} ({{ selectedLeaveToApprove.department }})</div>
+          <div><strong>Leave Type:</strong> {{ selectedLeaveToApprove.leaveType }} ({{ selectedLeaveToApprove.totalDays }} days)</div>
+          <div><strong>Dates:</strong> {{ selectedLeaveToApprove.startDate | date:'mediumDate' }} → {{ selectedLeaveToApprove.endDate | date:'mediumDate' }}</div>
+          <div><strong>Reason:</strong> "{{ selectedLeaveToApprove.reason }}"</div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Manager Comment / Feedback:</label>
+          <input type="text" class="form-control" placeholder="e.g. Approved. Please hand over active tasks..." [(ngModel)]="managerComment" />
+        </div>
+
+        <div style="display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: 1.5rem;">
+          <button class="btn btn-danger" (click)="processApproval(false)">❌ Reject</button>
+          <button class="btn btn-success" (click)="processApproval(true)">✅ Approve</button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</div>
